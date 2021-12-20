@@ -26,7 +26,7 @@ public:
     }
 
     template<typename ...Params>
-    static void PlotMultipleData(std::vector<const char*> names, Params& ... containers) {
+    static void PlotMultipleData(std::vector<const char*> names, Params&& ... containers) {
         if (plot == nullptr) {
             plot = new Gnuplot();
         }

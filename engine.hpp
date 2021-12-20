@@ -67,6 +67,11 @@ public:
         _name_to_component_index.insert(make_pair(type_name, _components.AddData(component_array)));
     }
 
+    template<typename ...Args>
+    void RegisterComponentTypes() {
+        (RegisterComponentType<Args>(), ...);
+    }
+
     template<typename T>
     void AddComponent(Entity entity) {
         SetComponent(entity, T());
@@ -74,7 +79,7 @@ public:
 
     template<typename T>
     void SetComponent(Entity entity, const T& component) {
-        VerifyComponentTypeRegistration<T>();
+        VerifyComponentRegistration<T>();
 
         ComponentArray<T>& component_array = GetComponentArray<T>();
         component_array.SetData(entity, component);
@@ -100,7 +105,7 @@ public:
 
     template<typename T>
     void RemoveComponent(Entity entity) {
-        VerifyComponentTypeRegistration<T>();
+        VerifyComponentRegistration<T>();
 
         ComponentArray<T> component_array = GetComponentArray<T>();
         component_array.RemoveData(entity);
@@ -143,29 +148,28 @@ public:
         return result;
     }
 
+    void AddSystem(System& system) {
+        std::shared_ptr<System> system_ptr;
+        system_ptr.reset(&system);
+        AppendSystemPtr(system_ptr);
+    }
+
     template<typename T>
     void RegisterSystem() {
+        AppendSystemPtr(std::static_pointer_cast<System>(std::make_shared<T>(*this)));
+    }
 
-        std::shared_ptr<System> system = std::static_pointer_cast<System>(std::make_shared<T>(*this))    ;
-
-        _systems.AddData(system);
-
-        // For every entity check if it is required by the system
-        for (int i = 0; i < GetEntityCount(); i++) {
-            for (int j = 0; j < system->GetSignatureCount(); j++) {
-                if (_signatures.entries[i].IsSufficientFor(system->signatures[j])) {
-                    system->AddEntity(i, j);
-                }
-            }
-        }
+    template<typename ...Args>
+    void RegisterSystems() {
+        (RegisterSystem<Args>(), ...);
     }
 
     Entity GetEntityCount() const {
         return _signatures.GetSize();
     }
 
-    void Update(float dt=0.0f) {
-        if (dt < 0.0001f) {
+    void Update(bool natural_time=true, float dt=0.01f) {
+        if (natural_time) {
             auto now = std::chrono::high_resolution_clock::now();
             dt = std::chrono::duration<float>(now - _last_update).count();
             _last_update = now;
@@ -185,7 +189,7 @@ public:
 
     template<typename T> 
     Component GetComponentID() {
-        VerifyComponentTypeRegistration<T>();
+        VerifyComponentRegistration<T>();
         std::string type_name = typeid(T).name();
 
         return _name_to_component_index.find(type_name)->second;
@@ -203,6 +207,19 @@ public:
         return signature;
     }
 private:
+    void AppendSystemPtr(std::shared_ptr<System> system) {
+        _systems.AddData(system);
+
+        // For every entity check if it is required by the system
+        for (int i = 0; i < GetEntityCount(); i++) {
+            for (int j = 0; j < system->GetSignatureCount(); j++) {
+                if (_signatures.entries[i].IsSufficientFor(system->signatures[j])) {
+                    system->AddEntity(i, j);
+                }
+            }
+        }
+    }
+
     template<typename T>
     ComponentArray<T>& GetComponentArray() {
         IComponentArray*& base_array = _components.GetData(GetComponentID<T>());
@@ -210,7 +227,7 @@ private:
     }
 
     template<typename T>
-    void VerifyComponentTypeRegistration() {
+    void VerifyComponentRegistration() {
         std::string type_name = typeid(T).name();
 
         assert(_name_to_component_index.find(type_name) != _name_to_component_index.end() && "This component hasn't been registered");

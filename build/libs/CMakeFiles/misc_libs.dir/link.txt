@@ -1,0 +1,2 @@
+/usr/bin/ar qc libmisc_libs.a  CMakeFiles/misc_libs.dir/vector3.cpp.o CMakeFiles/misc_libs.dir/logger.cpp.o CMakeFiles/misc_libs.dir/render.cpp.o
+/usr/bin/ranlib libmisc_libs.a

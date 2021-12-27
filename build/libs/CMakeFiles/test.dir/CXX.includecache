@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/theblek/Programming/engine/libs/render.cpp
+render.hpp
+/home/theblek/Programming/engine/libs/render.hpp
+GL/glew.h
+-
+GLFW/glfw3.h
+-
+string
+-
+sstream
+-
+iostream
+-
+fstream
+-
+config.hpp
+/home/theblek/Programming/engine/libs/config.hpp
+
+/home/theblek/Programming/engine/libs/render.hpp
+
+libs/generated/config.hpp
+

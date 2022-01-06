@@ -1,3 +1,3 @@
 #pragma once
 
-#define SOURCE_DIR "/home/theblek/Programming/engine/libs"
+#define SOURCE_DIR std::string("/home/theblek/Programming/engine/libs")

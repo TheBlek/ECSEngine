@@ -5,8 +5,37 @@
 #include <sstream>
 #include <iostream>
 #include <fstream>
+#include <cassert>
 #include "config.hpp"
 
+#define GLCall(x) ClearError();\
+    x;\
+    assert(GetErrors(#x, __FILE__, __LINE__))
+
+static void ClearError(){
+    while (glGetError() != GL_NO_ERROR);
+}
+
+static std::string GetErrorMessage(unsigned int code){
+    switch(code){
+        case GL_INVALID_ENUM:      return "Invalid enum";
+        case GL_INVALID_VALUE:     return "Invalid value";
+        case GL_INVALID_OPERATION: return "Invalid operation";
+        case GL_STACK_OVERFLOW:    return "Stack overflow";
+        case GL_STACK_UNDERFLOW:   return "Stack underflow";
+        case GL_OUT_OF_MEMORY:     return "Out of memory";
+        default:                   return "Unknown error";
+    }
+}
+
+static bool GetErrors(const char* func, const char* file, unsigned int line){
+    bool flag = true;
+    while(GLenum err = glGetError()){
+        std::cout << "[OpenGL ERROR] " << GetErrorMessage(err) << " in " << func << ":" << line << " " << file << std::endl;
+        flag = false;
+    }
+    return flag;
+}
 
 static unsigned int CompileShader(unsigned int type, const std::string& source)
 {
@@ -100,41 +129,65 @@ int main(void)
 
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
+    glfwSwapInterval(1);
 
     if(glewInit() != GLEW_OK)
         return -1;
 
-    float positions[6] = {
+    std::cout << glGetString(GL_VERSION) << std::endl;
+
+    float positions[] = {
         -0.5f, -0.5f,
-         0.0f,  0.5f,
-         0.5f, -0.5f
+         0.5f,  0.5f,
+         0.5f, -0.5f,
+        -0.5f,  0.5f
+    };
+
+    unsigned int indices[] = {
+        0, 1, 2,
+        0, 1, 3
     };
 
     unsigned int buffer;
-    glGenBuffers(1, &buffer);
-    glBindBuffer(GL_ARRAY_BUFFER, buffer);
-    glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), positions, GL_STATIC_DRAW);
+    GLCall(glGenBuffers(1, &buffer));
+    GLCall(glBindBuffer(GL_ARRAY_BUFFER, buffer));
+    GLCall(glBufferData(GL_ARRAY_BUFFER, 8 * sizeof(float), positions, GL_STATIC_DRAW));
 
 
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+    GLCall(glEnableVertexAttribArray(0));
+    GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0));
 
-    unsigned int shader = LoadShader(std::string(SOURCE_DIR) + "/shaders/RedTriangle.shader");
-    glUseProgram(shader);
+    unsigned int index_buffer;
+    GLCall(glGenBuffers(1, &index_buffer));
+    GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer));
+    GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indices, GL_STATIC_DRAW));
 
+    unsigned int shader = LoadShader(SOURCE_DIR + "/shaders/RedTriangle.shader");
+    GLCall(glUseProgram(shader));
+
+    GLCall(int location = glGetUniformLocation(shader, "u_Color"));
+    assert(location != -1);
+
+    float r = 0.0f;
+    float increment = 0.01f;
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
     {
         /* Render here */
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glDrawArrays(GL_TRIANGLES, 0, 3);
+        GLCall(glUniform4f(location, r, 0.3f, 0.8f, 1.0f));
+        GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
 
         /* Poll for and process events */
         glfwPollEvents();
+
+        if (r > 1.0f || r < 0.0f)
+            increment = -increment;
+        r += increment;
     }
 
     glfwTerminate();

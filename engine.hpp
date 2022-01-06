@@ -13,14 +13,6 @@
 #include <random>
 
 class Engine {
-    PackedArray<Signature, MAX_ENTITIES> _signatures;
-    PackedArray<IComponentArray*, MAX_ENTITIES> _components;
-    PackedArray<std::shared_ptr<System>, MAX_SYSTEMS> _systems;
-    std::unordered_map<std::string, Component> _name_to_component_index;
-
-    float _time;
-    std::chrono::time_point<std::chrono::high_resolution_clock> _last_update;
-
 public:
     std::mt19937 rng;
 
@@ -148,16 +140,12 @@ public:
         return result;
     }
 
-    void AddSystem(System& system) {
-        std::shared_ptr<System> system_ptr;
-        system_ptr.reset(&system);
-        AppendSystemPtr(system_ptr);
-    }
-
-    template<typename T>
-    void RegisterSystem() {
-        AppendSystemPtr(std::static_pointer_cast<System>(std::make_shared<T>(*this)));
-    }
+	template<typename T, typename ...Args>
+	T& RegisterSystem(Args... args) {
+		std::shared_ptr<T> system_ptr = std::make_shared<T>(*this, args...);
+		AppendSystemPtr(std::static_pointer_cast<System>(system_ptr));
+		return *system_ptr;
+	}
 
     template<typename ...Args>
     void RegisterSystems() {
@@ -206,8 +194,16 @@ public:
         (AddComponentToSignature<Params>(signature), ...);
         return signature;
     }
-private:
-    void AppendSystemPtr(std::shared_ptr<System> system) {
+private:	
+    PackedArray<Signature, MAX_ENTITIES> _signatures;
+    PackedArray<IComponentArray*, MAX_ENTITIES> _components;
+    PackedArray<std::shared_ptr<System>, MAX_SYSTEMS> _systems;
+    std::unordered_map<std::string, Component> _name_to_component_index;
+
+    float _time;
+    std::chrono::time_point<std::chrono::high_resolution_clock> _last_update;
+    
+	void AppendSystemPtr(std::shared_ptr<System> system) {
         _systems.AddData(system);
 
         // For every entity check if it is required by the system

@@ -16,12 +16,17 @@ public:
     static void LogAdvanced(const char* format, ...);
 
     template<typename T>
+    static void Log(T value) {
+        std::cout << value << std::endl;
+    }
+
+    template<typename T>
     static void PlotData(T container, const char* plot_name) {
         if (plot == nullptr) {
             plot = new Gnuplot();
         }
 
-        *plot << "plot '-' with lines title '" << plot_name << "'";
+        *plot << "plot '-' with lines title '" << plot_name << "' \n";
         plot->send1d(container);     
     }
 

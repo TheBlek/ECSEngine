@@ -64,6 +64,10 @@ public:
     Index GetSize() const {
         return _entry_count;
     }
+	
+	Index size() const {
+		return _entry_count;
+	}
 
     Index GetEmptyEntry() const {
         return _index_to_entry[_entry_count];

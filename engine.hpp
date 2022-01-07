@@ -42,6 +42,14 @@ public:
         for (int i = 0; i < _components.GetSize(); i++) {
             _components.entries[i]->OnEntityDeletion(entity);
         }
+
+		for (size_t i = 0; i < _systems.size(); i++) {
+			auto system = _systems.entries[i];
+			for (size_t j = 0; j < system->GetSignatureCount(); j++) {
+				if (system->IsEntityProccessed(entity, j))
+					system->RemoveEntity(entity, j);
+			}
+		}
     }
 
     Signature& GetSignature(Entity entity) {
@@ -65,8 +73,9 @@ public:
     }
 
     template<typename T>
-    void AddComponent(Entity entity) {
+    T& AddComponent(Entity entity) {
         SetComponent(entity, T());
+		return GetComponent<T>(entity);
     }
 
     template<typename T>
@@ -156,8 +165,8 @@ public:
         return _signatures.GetSize();
     }
 
-    void Update(bool natural_time=true, float dt=0.01f) {
-        if (natural_time) {
+    void Update(float dt=-1.0f) {
+        if (dt == -1.0f) {
             auto now = std::chrono::high_resolution_clock::now();
             dt = std::chrono::duration<float>(now - _last_update).count();
             _last_update = now;
@@ -170,7 +179,7 @@ public:
         }
     }
 
-    void RunForSeconds(double duration, float dt=0.0f) {
+    void RunForSeconds(double duration, float dt=-1.0f) {
         while (_time < duration)
             Update(dt);
     }

@@ -1,2 +1,0 @@
-/usr/bin/ar qc libECSEngine.a  CMakeFiles/ECSEngine.dir/entity.cpp.o
-/usr/bin/ranlib libECSEngine.a

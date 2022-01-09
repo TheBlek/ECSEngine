@@ -33,10 +33,13 @@ public:
     }
 
     Entity CreateEntity() {
-        return _signatures.AddData(Signature());
+		Entity entity = _signatures.AddData(Signature());
+		//Logger::LogAdvanced("Created entity %d\n", entity);
+        return entity;
     }
 
     void DeleteEntity(Entity entity) {
+		//Logger::LogAdvanced("Deleted entity %d\n", entity);
         _signatures.RemoveData(entity);
 
         for (int i = 0; i < _components.GetSize(); i++) {
@@ -132,7 +135,7 @@ public:
 
     template<typename T>
     T& GetComponent(Entity entity) {
-
+		//Logger::LogAdvanced("%s component of %d entity is accessed\n", typeid(T).name(), entity);
         ComponentArray<T>& component_array = GetComponentArray<T>();
 
         return component_array.GetData(entity);

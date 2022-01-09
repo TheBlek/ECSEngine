@@ -32,6 +32,9 @@ public:
 
             _entry_to_index[last_entry] = removed_index;
             _index_to_entry[removed_index] = last_entry;
+			
+			_entry_to_index[entry] = _entry_count - 1;
+			_index_to_entry[_entry_count - 1] = entry;
 
             // Actually move data
             entries[removed_index] = entries[_entry_count - 1];

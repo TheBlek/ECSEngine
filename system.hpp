@@ -34,10 +34,12 @@ public:
         assert(IsEntityProccessed(entity, type) && "This entity hadn't been added");
 
         auto it = _targets[type].begin();
-        for (; *it == entity; it++);
+        for (; *it != entity; it++);
 
-        _targets[type].erase(it);
+		
+		//Logger::LogAdvanced("Is this I was supposed to delete? - %d", *(it));
         _current_entities[type].reset(*it);
+        _targets[type].erase(it);
     }
 
     void SetSignature(size_t id, Signature& signature) {

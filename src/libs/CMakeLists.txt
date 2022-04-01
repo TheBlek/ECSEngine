@@ -13,10 +13,10 @@ find_package(GLEW REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS filesystem iostreams)
 
-add_library(misc_libs vector3.cpp logger.cpp render.cpp)
+add_library(misc_libs vector3.cpp logger.cpp profiler.cpp renderer.cpp)
 add_executable(test render.cpp)
 
-target_include_directories(misc_libs PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/generated)
+target_include_directories(misc_libs PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/generated ${CMAKE_CURRENT_SOURCE_DIR}/../core ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(test PUBLIC ${CMAKE_CURRENT_BINARY_DIR}/generated)
 
 target_link_libraries(test PUBLIC glfw OpenGL::GL ${GLEW_LIBRARIES} Boost::filesystem Boost::iostreams)

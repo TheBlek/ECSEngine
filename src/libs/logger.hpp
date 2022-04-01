@@ -1,40 +1,32 @@
 #pragma once
 #include "gnuplot.h"
-#include <vector>
+#include <array>
 
-class Logger {
-public:
+namespace Logger {
 
-    inline static Gnuplot* plot;
+    static Gnuplot *plot = new Gnuplot();
     
-    static void ResetFile(const char* filename);
+    void ResetFile(const char* filename);
 
-    static void LogDeal(float price);
+    void LogDeal(float price);
 
-    static void LogFileAdvanced(const char* filename, const char* format, ...);
+    void LogFileAdvanced(const char* filename, const char* format, ...);
 
-    static void LogAdvanced(const char* format, ...);
+    void LogAdvanced(const char* format, ...);
 
     template<typename T>
-    static void Log(T value) {
+    void Log(T value) {
         std::cout << value << std::endl;
     }
 
     template<typename T>
-    static void PlotData(T container, const char* plot_name) {
-        if (plot == nullptr) {
-            plot = new Gnuplot();
-        }
-
+    void PlotData(T container, const char* plot_name) {
         *plot << "plot '-' with lines title '" << plot_name << "' \n";
-        plot->send1d(container);     
+        plot->send1d(container); 
     }
 
     template<typename ...Params>
-    static void PlotMultipleData(std::vector<const char*> names, Params&& ... containers) {
-        if (plot == nullptr) {
-            plot = new Gnuplot();
-        }
+   	void PlotMultipleData(const std::array<const char*, sizeof...(Params)> &names, Params && ... containers) {
         *plot << "plot ";
         for (size_t i = 0; i < names.size() - 1; i++)
             *plot << "'-' with lines title '" << names[i] << "', ";

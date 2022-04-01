@@ -16,7 +16,7 @@ static void ClearError(){
     while (glGetError() != GL_NO_ERROR);
 }
 
-static std::string GetErrorMessage(unsigned int code){
+static std::string_view GetErrorMessage(unsigned int code){
     switch(code){
         case GL_INVALID_ENUM:      return "Invalid enum";
         case GL_INVALID_VALUE:     return "Invalid value";
@@ -37,7 +37,7 @@ static bool GetErrors(const char* func, const char* file, unsigned int line){
     return flag;
 }
 
-static unsigned int CompileShader(unsigned int type, const std::string& source)
+static unsigned int CompileShader(unsigned int type, const std::string &source)
 {
     unsigned int id = glCreateShader(type);
     const char* src = source.c_str();
@@ -62,7 +62,7 @@ static unsigned int CompileShader(unsigned int type, const std::string& source)
     return id;
 }
 
-static unsigned int CreateShader(const std::string& vertexShader, const std::string& fragmentShader)
+static unsigned int CreateShader(const std::string &vertexShader, const std::string &fragmentShader)
 {
     
     unsigned int program = glCreateProgram();
@@ -80,7 +80,7 @@ static unsigned int CreateShader(const std::string& vertexShader, const std::str
     return program;
 }
 
-static unsigned int LoadShader(const std::string& filepath)
+static unsigned int LoadShader(const std::string &filepath)
 {
     std::ifstream stream(filepath);
 
@@ -136,35 +136,38 @@ int main(void)
 
     std::cout << glGetString(GL_VERSION) << std::endl;
 
+    unsigned int shader = LoadShader(SOURCE_DIR + "/shaders/RedTriangle.shader");
+    GLCall(glUseProgram(shader));
+
     float positions[] = {
         -0.5f, -0.5f,
          0.5f,  0.5f,
-         0.5f, -0.5f,
-        -0.5f,  0.5f
+         0.5f, -0.5f
+       // -0.5f,  0.5f
     };
 
     unsigned int indices[] = {
         0, 1, 2,
         0, 1, 3
     };
-
+	/*
+	unsigned int vertex_array_object;
+	GLCall(glGenVertexArrays(1, &vertex_array_object));	
+	GLCall(glBindVertexArray(vertex_array_object));
+	*/
     unsigned int buffer;
     GLCall(glGenBuffers(1, &buffer));
     GLCall(glBindBuffer(GL_ARRAY_BUFFER, buffer));
-    GLCall(glBufferData(GL_ARRAY_BUFFER, 8 * sizeof(float), positions, GL_STATIC_DRAW));
-
+    GLCall(glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), positions, GL_STATIC_DRAW));
 
     GLCall(glEnableVertexAttribArray(0));
     GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0));
-
+	/*
     unsigned int index_buffer;
     GLCall(glGenBuffers(1, &index_buffer));
     GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer));
     GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, 6 * sizeof(unsigned int), indices, GL_STATIC_DRAW));
-
-    unsigned int shader = LoadShader(SOURCE_DIR + "/shaders/RedTriangle.shader");
-    GLCall(glUseProgram(shader));
-
+	*/
     GLCall(int location = glGetUniformLocation(shader, "u_Color"));
     assert(location != -1);
 
@@ -177,8 +180,8 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT);
 
         GLCall(glUniform4f(location, r, 0.3f, 0.8f, 1.0f));
-        GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
-
+        //GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
+		GLCall(glDrawArrays(GL_TRIANGLES, 0, 3));
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
 

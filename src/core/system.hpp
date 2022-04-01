@@ -3,6 +3,7 @@
 #include <vector>
 #include <array>
 #include <bitset>
+#include <cassert>
 #include "entity.hpp"
 
 class Engine;
@@ -16,12 +17,28 @@ protected:
     void ValidateSignatureID(size_t id) const{
         assert(id >= 0 && id < GetSignatureCount() && "Signature ID is out of bounds");
     }
+	
+	// WARNING!!! FOR INTERNAL USE ONLY - USES MAGIC. SEE CONSTRUCTOR
+	void AddSignature(Signature &signature, unsigned int *signature_id) {
+		ValidateSignatureID(*signature_id);
+        signatures[*signature_id] = signature;
+		(*signature_id)++;
+	}
+
+    void AddSignature(Signature&& signature, unsigned int *signature_id) {
+        AddSignature(signature, signature_id);
+    }
 
 public:
     std::vector<Signature> signatures;
 
-    System(Engine& engine, size_t signature_count) 
-        : _engine(engine), _targets(signature_count), _current_entities(signature_count), signatures(signature_count) { }
+	template<typename ...Signatures>
+    System(Engine& engine, Signatures... signatures) 
+        : _engine(engine), _targets(sizeof...(Signatures)), _current_entities(sizeof...(Signatures)), signatures(sizeof...(Signatures)) {
+
+		unsigned int signature_id = 0;
+		(AddSignature(signatures, &signature_id), ...);
+	 }
 
     void AddEntity(Entity entity, size_t type) {
         assert(!IsEntityProccessed(entity, type) && "This entity has already been added");
@@ -36,19 +53,8 @@ public:
         auto it = _targets[type].begin();
         for (; *it != entity; it++);
 
-		
-		//Logger::LogAdvanced("Is this I was supposed to delete? - %d", *(it));
         _current_entities[type].reset(*it);
         _targets[type].erase(it);
-    }
-
-    void SetSignature(size_t id, Signature& signature) {
-        ValidateSignatureID(id);
-        signatures[id] = signature;
-    }
-
-    void SetSignature(size_t id, Signature&& signature) {
-        SetSignature(id, signature);
     }
 
     bool IsEntityProccessed(Entity entity, size_t type) const {

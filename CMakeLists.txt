@@ -6,4 +6,4 @@ add_subdirectory(src/libs)
 
 add_library(ECSEngine src/core/entity.cpp)
 target_link_libraries(ECSEngine PUBLIC misc_libs)
-target_include_directories(ECSEngine PUBLIC libs PUBLIC ${PROJECT_SOURCE_DIR})
+target_include_directories(ECSEngine PUBLIC src/libs PUBLIC src/core)

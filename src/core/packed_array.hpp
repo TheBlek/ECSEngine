@@ -1,19 +1,18 @@
 #pragma once
-#include <vector>
+#include <array>
 #include <cassert>
 
 template<typename T, uint32_t MAX_SIZE>
 class PackedArray {
-    using Index = std::uint16_t;
+    using Index = std::uint32_t;
     Index _entry_count;
-    std::vector<Index> _entry_to_index;
-    std::vector<Index> _index_to_entry;
+    std::array<Index, MAX_SIZE> _entry_to_index;
+    std::array<Index, MAX_SIZE> _index_to_entry;
 
 public:
-    std::vector<T> entries;
+    std::array<T, MAX_SIZE> entries;
 
-    PackedArray()
-        : _entry_count(0), _entry_to_index(MAX_SIZE), _index_to_entry(MAX_SIZE), entries(MAX_SIZE) {
+    PackedArray() : _entry_count(0) {
         for (int i = 0; i < MAX_SIZE; i++) {
             _entry_to_index[i] = i;
             _index_to_entry[i] = i;
@@ -43,13 +42,13 @@ public:
         _entry_count--;
     }
 
-    T& GetData(Index entry) {
+    T &GetData(Index entry) {
         assert(_entry_to_index[entry] < _entry_count && "Entry does not have valid data");
         
         return entries[_entry_to_index[entry]];
     }
 
-    void SetData(Index entry, const T& data) {
+    void SetData(Index entry, const T &data) {
         // If entry is new
         if (_entry_to_index[entry] >= _entry_count) {
             
@@ -76,7 +75,7 @@ public:
         return _index_to_entry[_entry_count];
     }
 
-    Index AddData(const T& data) {
+    Index AddData(const T &data) {
         Index place = GetEmptyEntry();
         SetData(place, data);
         return place;

@@ -10,32 +10,32 @@ class TrackerSystem : public System {
 
     bool _is_tracking;
 public:
-    TrackerSystem(Engine& engine) : System(engine, 0) {
+    TrackerSystem(Engine& engine) : System(engine) {
         _is_tracking = false;
     }
 
-    TrackerSystem(Engine& engine, T& value1, K& value2) : System(engine, 0) {
+    TrackerSystem(Engine& engine, T& value1, K& value2) : System(engine) {
         _function1 = [&](){return value1;};
         _function2 = [&](){return value2;};
 
         _is_tracking = true;
     }
 
-    TrackerSystem(Engine& engine, T& value1, std::function<K()> func2) : System(engine, 0) {
+    TrackerSystem(Engine& engine, T& value1, std::function<K()> func2) : System(engine) {
         _function1 = [&](){return value1;};
         _function2 = func2;
 
         _is_tracking = true;
     }
 
-    TrackerSystem(Engine& engine, std::function<T()> func1, K& value2) : System(engine, 0) {
+    TrackerSystem(Engine& engine, std::function<T()> func1, K& value2) : System(engine) {
         _function1 = func1;
         _function2 = [&](){return value2;};
 
         _is_tracking = true;
     }
 
-    TrackerSystem(Engine& engine, std::function<T()> func1, std::function<K()> func2) : System(engine, 0) {
+    TrackerSystem(Engine& engine, std::function<T()> func1, std::function<K()> func2) : System(engine) {
         _function1 = func1;
         _function2 = func2;
 

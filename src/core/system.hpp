@@ -22,7 +22,7 @@ protected:
 	void AddSignature(Signature &signature, unsigned int *signature_id) {
 		ValidateSignatureID(*signature_id);
         signatures[*signature_id] = signature;
-		(*signature_id)++;
+		++(*signature_id);
 	}
 
     void AddSignature(Signature&& signature, unsigned int *signature_id) {
@@ -51,7 +51,7 @@ public:
         assert(IsEntityProccessed(entity, type) && "This entity hadn't been added");
 
         auto it = _targets[type].begin();
-        for (; *it != entity; it++);
+        for (; *it != entity; ++it);
 
         _current_entities[type].reset(*it);
         _targets[type].erase(it);

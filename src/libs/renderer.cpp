@@ -2,12 +2,13 @@
 #include "renderer.hpp"
 #include <GLFW/glfw3.h>
 #include <cassert>
-#include "vector3.hpp"
+#include "vectors.hpp"
 #include "system.hpp"
 #include "engine.hpp"
 #include "config.hpp"
 #include <iostream>
 #include "profiler.hpp"
+#include "logger.hpp"
 
 #define GLCall(x) ClearError();\
     x;\
@@ -32,7 +33,7 @@ static std::string_view GetErrorMessage(unsigned int code){
 static bool GetErrors(const char* func, const char* file, unsigned int line){
     bool flag = true;
     while(GLenum err = glGetError()){
-        std::cout << "[OpenGL ERROR] " << GetErrorMessage(err) << " in " << func << ":" << line << " " << file << std::endl;
+        Logger::LogAdvanced("[OpenGL ERROR] %s in %s:%d %s\n", GetErrorMessage(err), func, line, file);
         flag = false;
     }
     return flag;
@@ -57,7 +58,7 @@ static unsigned int CompileShader(unsigned int type, const std::string &source)
         std::cout << error_message << std::endl;
         std::cout << source << std::endl;
         glDeleteShader(id);
-        return 0;
+        assert(false);
     }
 
     return id;
@@ -109,76 +110,113 @@ static unsigned int LoadShader(const std::string &filepath)
 
     return CreateShader(vertexShader.str(), fragmentShader.str());
 }
+Renderer::Renderer(Engine &engine, Vector2Int window_size, const char *window_name)
+    : Renderer(engine, window_size, window_name, 6) { }
 
-Renderer::Renderer(Engine &engine, int width, int height, const char *window_name, unsigned int buffer_size=6) 
-		: System(engine, engine.ConstructSignature<Triangle>()) {
+Renderer::Renderer(
+        Engine &engine,
+        Vector2Int window_size,
+        const char *window_name,
+        unsigned int buffer_size=6)
+		:   System(engine, engine.ConstructSignature<Triangle>(), engine.ConstructSignature<Rectangle>()),
+            _vertex_buffer(buffer_size), 
+            _index_buffer(buffer_size) {
+
+	PROFILE_FUNCTION();
 
 	_window = nullptr;
 	assert(glfwInit() && "GLFW was not able to initialize");
 
-	_window = glfwCreateWindow(width, height, window_name, NULL, NULL);
+	_window = glfwCreateWindow(window_size.x, window_size.y, window_name, NULL, NULL);
 	if (!_window) {
 		glfwTerminate();
 		assert(false && "GLFW was not able to create a window");
 	}
 	
-	_window_size = {width, height, 0};
+	_window_size = window_size;
 
 	glfwMakeContextCurrent(_window);
-	glfwSwapInterval(1);	
+	glfwSwapInterval(0);	
 
 	assert(glewInit() == GLEW_OK && "GLEW was not able to initialize");
 
 	unsigned int shader = LoadShader(SOURCE_DIR + "/shaders/RedTriangle.shader");
 	glUseProgram(shader);
 
-	unsigned int position = glGetUniformLocation(shader, "u_Color");
-	assert(position != -1 && "u_Color uniform was not found");
-
-	glUniform4f(position, 1.0f, 0.2f, 0.4f, 1.0f);
-
-	float *_positions_buffer = (float *)malloc(buffer_size * sizeof(float));
-	unsigned int _buffer_size = buffer_size;
-
 	unsigned int buffer;
 	GLCall(glGenBuffers(1, &buffer));
 	GLCall(glBindBuffer(GL_ARRAY_BUFFER, buffer));
+
+	GLCall(glEnableVertexAttribArray(0));
+	GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), 0));
+	GLCall(glEnableVertexAttribArray(1));
+	GLCall(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float),(const void *)( 2 * sizeof(float) )));
+
+	unsigned int ibo;
+	GLCall(glGenBuffers(1, &ibo));
+	GLCall(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo));
 }
 
 Renderer::~Renderer() {
 	glfwTerminate();
-	free(_positions_buffer);
 }
 
 void Renderer::Update(float dt) {
 	PROFILE_FUNCTION();
-	auto triangles = _engine.GetComponentList<Triangle>(_targets[0]);
+    auto triangles = _engine.GetComponentArray<Triangle>();
+    auto rectangles = _engine.GetComponentArray<Rectangle>();
+    auto transforms = _engine.GetComponentArray<Transform>();
 
-	if (_buffer_size < triangles.size()*3*2) {
-		_positions_buffer = (float *)realloc(_positions_buffer, triangles.size()*3*2 * sizeof(float)); 
-	}
-	
-	float *current = _positions_buffer;
-	
-	for (auto *triangle : triangles) {
-		for (auto &vertex : triangle->vertices) {
-			*current = vertex.x / _window_size.x;
-			current++;
-			*current = vertex.y / _window_size.y;
-			current++;
-		}
-	}
-	
-	GLCall(glBufferData(GL_ARRAY_BUFFER, triangles.size()*3*2 * sizeof(float), _positions_buffer, GL_DYNAMIC_DRAW));
+    _vertex_buffer.Reserve((triangles.size()*3 + rectangles.size()*4) * 5);
+    _index_buffer.Reserve(triangles.size()*3 + rectangles.size()*6);
 
-	GLCall(glEnableVertexAttribArray(0));
-	GLCall(glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0));
+    _vertex_buffer.Empty();
+    _index_buffer.Empty();
+    auto current_index = 0u;
+    
+    auto bufferVertex = [&](Vector3 vertex, Vector3 color) {
+        _vertex_buffer.Append(vertex.x / _window_size.x);
+        _vertex_buffer.Append(vertex.y / _window_size.y);
+        _vertex_buffer.Append(color.x / 255);
+        _vertex_buffer.Append(color.y / 255);
+        _vertex_buffer.Append(color.z / 255);
+        return current_index++;	
+    };
+    
+    for (auto entity : _targets[0]) {
+        auto &triangle = triangles.GetData(entity);
+        Vector3 position = transforms.HasData(entity) ? transforms.GetData(entity).position : (Vector3){0,0,0};
+        for (auto &vertex : triangle.vertices) {
+            _index_buffer.Append(bufferVertex(vertex + position, triangle.color));
+        }
+    }
 
-	glClear(GL_COLOR_BUFFER_BIT);
+    for (auto entity : _targets[1]) {
+        auto &rectangle = rectangles.GetData(entity);
+        Vector3 position = transforms.HasData(entity) ? transforms.GetData(entity).position : (Vector3){0,0,0};
+        auto i0 = bufferVertex(rectangle.vertices[0] + position, rectangle.color);
+        auto i1 = bufferVertex(rectangle.vertices[1] + position, rectangle.color);
+        auto i2 = bufferVertex(rectangle.vertices[2] + position, rectangle.color);
+        auto i3 = bufferVertex(rectangle.vertices[3] + position, rectangle.color);
 
-	GLCall(glDrawArrays(GL_TRIANGLES, 0, triangles.size()*3));
+        _index_buffer.Append(i0);
+        _index_buffer.Append(i1);
+        _index_buffer.Append(i2);
 
-	glfwSwapBuffers(_window);
+        _index_buffer.Append(i0);
+        _index_buffer.Append(i2);
+        _index_buffer.Append(i3);
+    }
+    GLCall(glBufferData(GL_ARRAY_BUFFER, _vertex_buffer.size * sizeof(float), _vertex_buffer.data, GL_DYNAMIC_DRAW));
+    GLCall(glBufferData(GL_ELEMENT_ARRAY_BUFFER, _index_buffer.size * sizeof(unsigned int), _index_buffer.data, GL_DYNAMIC_DRAW)); 
 
-	glfwPollEvents();
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    GLCall(glDrawElements(GL_TRIANGLES, triangles.size()*3 + rectangles.size()*6, GL_UNSIGNED_INT, nullptr));
+
+    glfwSwapBuffers(_window);
+    GLCall(glFlush());
+
+    glfwPollEvents();
+    
 }

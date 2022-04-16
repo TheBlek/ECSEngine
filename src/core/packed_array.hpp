@@ -13,14 +13,18 @@ public:
     std::array<T, MAX_SIZE> entries;
 
     PackedArray() : _entry_count(0) {
-        for (int i = 0; i < MAX_SIZE; i++) {
+        for (unsigned int i = 0; i < MAX_SIZE; i++) {
             _entry_to_index[i] = i;
             _index_to_entry[i] = i;
         }
     }
 
+    bool HasData(Index entry) {
+        return _entry_to_index[entry] < _entry_count;
+    }
+
     void RemoveData(Index entry) {
-        assert(_entry_to_index[entry] < _entry_count && "Entry does not have valid data to remove");
+        assert(HasData(entry) && "Entry does not have valid data to remove");
 
         // If not the last one
         if (_entry_to_index[entry] < _entry_count - 1) {
@@ -43,7 +47,7 @@ public:
     }
 
     T &GetData(Index entry) {
-        assert(_entry_to_index[entry] < _entry_count && "Entry does not have valid data");
+        assert(HasData(entry) && "Entry does not have valid data");
         
         return entries[_entry_to_index[entry]];
     }
@@ -62,7 +66,7 @@ public:
     }
 
     // BEWARE RETURED INDEX IS INTERNAL
-    // AND THEREFORE SHOULD ONLY BE USED TO ITERATE OVER ARRAY
+    // AND THEREFORE SHOULD ONLY BE USED TO ITERATE OVER INTERNAL ARRAY
     Index GetSize() const {
         return _entry_count;
     }

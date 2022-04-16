@@ -28,23 +28,28 @@ public:
         rng = std::mt19937(rd());
     }
 
+    ~Engine() {
+        for (auto *system : _systems.entries) {
+            delete system;
+        }
+    }
+
     float GetSimulationTime() {
         return _time;
     }
 
     Entity CreateEntity() {
-		Entity entity = _signatures.AddData(Signature());
-        return entity;
+        return _signatures.AddData(Signature());
     }
 
     void DeleteEntity(Entity entity) {
         _signatures.RemoveData(entity);
 
-        for (int i = 0; i < _components.GetSize(); i++) {
+        for (auto i = 0u; i < _components.GetSize(); i++) {
             _components.entries[i]->OnEntityDeletion(entity);
         }
 
-		for (size_t i = 0; i < _systems.size(); i++) {
+		for (auto i = 0u; i < _systems.size(); i++) {
 			auto system = _systems.entries[i];
 			for (size_t j = 0; j < system->GetSignatureCount(); j++) {
 				if (system->IsEntityProccessed(entity, j))
@@ -90,11 +95,11 @@ public:
         signature.AddComponent(GetComponentID<T>());
 
 
-        for (int i = 0; i < _systems.GetSize(); i++) {
+        for (auto i = 0u; i < _systems.GetSize(); i++) {
             auto system = _systems.entries[i];
 
             // We need to check for every signature system has
-            for (int j = 0; j < system->GetSignatureCount(); j++) {
+            for (auto j = 0u; j < system->GetSignatureCount(); j++) {
                 // If it is not proccessed but is valid now
                 if (!system->IsEntityProccessed(entity, j) && 
                     signature.IsSufficientFor( system->signatures[j] )) {
@@ -115,11 +120,11 @@ public:
         Signature &signature = GetSignature(entity);
         signature.RemoveComponent(GetComponentID<T>());
 
-        for (int i = 0; i < _systems.GetSize(); i++) {
+        for (auto i = 0u; i < _systems.GetSize(); i++) {
             System* system = _systems.entries[i];
 
             // We need to check for every signature system has
-            for (int j = 0; j < system->GetSignatureCount(); j++) {
+            for (auto j = 0u; j < system->GetSignatureCount(); j++) {
 
                 // If it is proccessed but not valid now - remove
                 if (system->IsEntityProccessed(entity, j) && 
@@ -157,8 +162,8 @@ public:
         _systems.AddData(system);
 
         // For every entity check if it is required by the system
-        for (int i = 0; i < GetEntityCount(); i++) {
-            for (int j = 0; j < system->GetSignatureCount(); j++) {
+        for (auto i = 0u; i < GetEntityCount(); i++) {
+            for (auto j = 0u; j < system->GetSignatureCount(); j++) {
                 if (_signatures.entries[i].IsSufficientFor(system->signatures[j])) {
                     system->AddEntity(i, j);
                 }
@@ -186,12 +191,15 @@ public:
 
         _time += dt;
 
-        for (int i = 0; i < _systems.GetSize(); i++) {
+        for (auto i = 0u; i < _systems.GetSize(); i++) {
             _systems.entries[i]->Update(dt);
         }
     }
 
     void RunForSeconds(double duration, float dt=-1.0f) {
+		if (dt == -1.0f)
+			_last_update = std::chrono::high_resolution_clock::now();
+				
         while (_time < duration)
             Update(dt);
     }
@@ -205,16 +213,18 @@ public:
     }
 
     template<typename ...Params>
-    Signature ConstructSignature(){
+    Signature ConstructSignature(){ 
         Signature signature;
         (signature.AddComponent(GetComponentID<Params>()), ...);
         return signature;
     }
 
-	~Engine() {
-		for (size_t i = 0; i < _systems.size(); i++)
-			delete _systems.entries[i];
-	}
+    template<typename T>
+    ComponentArray<T> &GetComponentArray() {
+        IComponentArray *&base_array = _components.GetData(GetComponentID<T>());
+        return static_cast<ComponentArray<T>&>(*base_array);
+    }
+
 private:	
     PackedArray<Signature, MAX_ENTITIES> _signatures;
     PackedArray<IComponentArray *, MAX_ENTITIES> _components;
@@ -223,12 +233,6 @@ private:
 
     float _time = 0;
     std::chrono::time_point<std::chrono::high_resolution_clock> _last_update;
-
-    template<typename T>
-    ComponentArray<T> &GetComponentArray() {
-        IComponentArray *&base_array = _components.GetData(GetComponentID<T>());
-        return static_cast<ComponentArray<T>&>(*base_array);
-    }
 
     template<typename T>
     void VerifyComponentRegistration() {

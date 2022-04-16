@@ -36,7 +36,7 @@ public:
     System(Engine& engine, Signatures... signatures) 
         : _engine(engine), _targets(sizeof...(Signatures)), _current_entities(sizeof...(Signatures)), signatures(sizeof...(Signatures)) {
 
-		unsigned int signature_id = 0;
+		unsigned int signature_id = 0u;
 		(AddSignature(signatures, &signature_id), ...);
 	 }
 

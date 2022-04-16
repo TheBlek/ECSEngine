@@ -4,7 +4,10 @@
 
 namespace Logger {
 
-    static Gnuplot *plot = new Gnuplot();
+	static Gnuplot *GetPlot() {
+    	static Gnuplot *plot = new Gnuplot();
+		return plot;
+	}
     
     void ResetFile(const char* filename);
 
@@ -21,12 +24,14 @@ namespace Logger {
 
     template<typename T>
     void PlotData(T container, const char* plot_name) {
+		Gnuplot *plot = GetPlot();
         *plot << "plot '-' with lines title '" << plot_name << "' \n";
         plot->send1d(container); 
     }
 
     template<typename ...Params>
    	void PlotMultipleData(const std::array<const char*, sizeof...(Params)> &names, Params && ... containers) {
+		Gnuplot *plot = GetPlot();
         *plot << "plot ";
         for (size_t i = 0; i < names.size() - 1; i++)
             *plot << "'-' with lines title '" << names[i] << "', ";

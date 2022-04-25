@@ -4,6 +4,8 @@
 #include <bitset>
 
 struct Signature {
+    std::bitset<MAX_COMPONENTS> components;
+
     void AddComponent(Component id);
 
     void RemoveComponent(Component id);
@@ -11,8 +13,6 @@ struct Signature {
     void Reset();
 
     bool IsSufficientFor(Signature& gate);
-
-    std::bitset<MAX_COMPONENTS> components;
 private:
     void VerifyID(Component id);
 };

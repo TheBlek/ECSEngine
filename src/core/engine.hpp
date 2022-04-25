@@ -11,6 +11,7 @@
 #include <chrono>
 #include <memory>
 #include <random>
+#include <functional>
 
 class Engine {
 public:
@@ -19,7 +20,7 @@ public:
     Engine() {
         _signatures = PackedArray<Signature, MAX_ENTITIES>();
         _components = PackedArray<IComponentArray *, MAX_ENTITIES>();
-        _systems = PackedArray<System *, MAX_SYSTEMS>();
+        _systems = PackedArray<std::function<void(float)>, MAX_SYSTEMS>();
         _name_to_component_index = std::unordered_map<std::string, Component>();
         
 		_last_update = std::chrono::high_resolution_clock::now();
@@ -63,19 +64,22 @@ public:
     }
 
     template<typename T>
-    void RegisterComponentType() {
-
-        std::string type_name = typeid(T).name();
-
-        assert(_name_to_component_index.find(type_name) == _name_to_component_index.end() && "This component has been already registered");
-
+    unsigned int RegisterComponentType() {
         IComponentArray *component_array = new ComponentArray<T>();
-        _name_to_component_index.insert(make_pair(type_name, _components.AddData(component_array)));
+
+        _components.SetData(_component_count, component_array);
+        return _component_count++;
     }
 
     template<typename ...Args>
     void RegisterComponentTypes() {
         (RegisterComponentType<Args>(), ...);
+    }
+
+    template<typename T> 
+    Component GetComponentID() {
+        const static unsigned int id = RegisterComponentType<T>();
+        return id;
     }
 
     template<typename T>
@@ -212,13 +216,6 @@ public:
         }
     }
 
-    template<typename T> 
-    Component GetComponentID() {
-        VerifyComponentRegistration<T>();
-        std::string type_name = typeid(T).name();
-
-        return _name_to_component_index.find(type_name)->second;
-    }
 
     template<typename ...Params>
     Signature ConstructSignature(){ 
@@ -232,12 +229,18 @@ public:
         IComponentArray *&base_array = _components.GetData(GetComponentID<T>());
         return static_cast<ComponentArray<T>&>(*base_array);
     }
-
+    
 private:	
     PackedArray<Signature, MAX_ENTITIES> _signatures;
-    PackedArray<IComponentArray *, MAX_ENTITIES> _components;
-    PackedArray<System *, MAX_SYSTEMS> _systems;
-    std::unordered_map<std::string, Component> _name_to_component_index;
+
+    std::vector<Signature> _node_signatures;
+    std::vector<PackedArray<Entity, MAX_ENTITIES>> _nodes;
+    std::vector<std::bitset<MAX_ENTITIES>> _is_processed;
+
+    PackedArray<std::function<void(float)>, MAX_SYSTEMS> _systems;
+
+    PackedArray<IComponentArray *, MAX_COMPONENTS> _components;
+    unsigned int _component_type_count = 0;
 
     float _time = 0;
     std::chrono::time_point<std::chrono::high_resolution_clock> _last_update;
